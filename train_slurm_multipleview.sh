@@ -10,7 +10,7 @@
 source ~/.bashrc
 conda activate 4dg
 
-python train.py -s /home/e/e0407638/github/4DGaussians/dataset/multipleview/bearRun --port 6017 --expname "multipleview/bearRun" --configs /home/e/e0407638/github/4DGaussians/arguments/multipleview/default.py
+python train.py -s /home/e/e0407638/github/4DGaussians/data/multipleview/bearRun --port 6017 --expname "multipleview/bearRun" --configs /home/e/e0407638/github/4DGaussians/arguments/multipleview/default.py
 
 python render.py --model_path "output/multipleview/bearRun/"  --skip_train --configs arguments/multipleview/default.py
 
