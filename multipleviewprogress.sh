@@ -1,16 +1,16 @@
 workdir=$1
 python scripts/extractimages.py multipleview/$workdir
-/home/e/e0407638/github/colmap/build/src/colmap/exe feature_extractor --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images  --SiftExtraction.max_image_size 4096 --SiftExtraction.max_num_features 16384 --SiftExtraction.estimate_affine_shape 1 --SiftExtraction.domain_size_pooling 1 --SiftExtraction.use_gpu 0
-/home/e/e0407638/github/colmap/build/src/colmap/exe exhaustive_matcher --database_path ./colmap_tmp/database.db
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap feature_extractor --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images  --SiftExtraction.max_image_size 4096 --SiftExtraction.max_num_features 16384 --SiftExtraction.estimate_affine_shape 1 --SiftExtraction.domain_size_pooling 1 --SiftExtraction.use_gpu 0
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap exhaustive_matcher --database_path ./colmap_tmp/database.db
 mkdir ./colmap_tmp/sparse
-/home/e/e0407638/github/colmap/build/src/colmap/exe mapper --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images --output_path ./colmap_tmp/sparse
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap mapper --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images --output_path ./colmap_tmp/sparse
 mkdir ./data/multipleview/$workdir/sparse_
 cp -r ./colmap_tmp/sparse/0/* ./data/multipleview/$workdir/sparse_
 
 mkdir ./colmap_tmp/dense
-/home/e/e0407638/github/colmap/build/src/colmap/exe image_undistorter --image_path ./colmap_tmp/images --input_path ./colmap_tmp/sparse/0 --output_path ./colmap_tmp/dense --output_type COLMAP
-/home/e/e0407638/github/colmap/build/src/colmap/exe patch_match_stereo --workspace_path ./colmap_tmp/dense --workspace_format COLMAP --PatchMatchStereo.geom_consistency true
-/home/e/e0407638/github/colmap/build/src/colmap/exe stereo_fusion --workspace_path ./colmap_tmp/dense --workspace_format COLMAP --input_type geometric --output_path ./colmap_tmp/dense/fused.ply
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap image_undistorter --image_path ./colmap_tmp/images --input_path ./colmap_tmp/sparse/0 --output_path ./colmap_tmp/dense --output_type COLMAP
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap patch_match_stereo --workspace_path ./colmap_tmp/dense --workspace_format COLMAP --PatchMatchStereo.geom_consistency true
+/home/e/e0407638/github/colmap/build/src/colmap/exe/colmap stereo_fusion --workspace_path ./colmap_tmp/dense --workspace_format COLMAP --input_type geometric --output_path ./colmap_tmp/dense/fused.ply
 
 python scripts/downsample_point.py ./colmap_tmp/dense/fused.ply ./data/multipleview/$workdir/points3D_multipleview.ply
 
