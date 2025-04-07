@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=MultipleView          # Job name
+#SBATCH --job-name=MultipleView_BearRun2          # Job name
 #SBATCH --time=24:00:00                  # Time limit hrs:min:sec
 #SBATCH --gres=gpu:a100-40:1
 #SBATCH --mail-type=ALL                  # Get email for all status updates
@@ -10,8 +10,8 @@
 source ~/.bashrc
 conda activate 4dg
 
-python train.py -s /home/e/e0407638/github/4DGaussians/data/multipleview/bearRun --port 6017 --expname "multipleview/bearRun" --configs /home/e/e0407638/github/4DGaussians/arguments/multipleview/default.py
+python train.py -s /home/e/e0407638/github/4DGaussians/data/multipleview/bearRun2 --port 6017 --expname "multipleview/bearRun" --configs /home/e/e0407638/github/4DGaussians/arguments/multipleview/default.py
 
-python render.py --model_path "output/multipleview/bearRun/"  --skip_train --configs arguments/multipleview/default.py
+python render.py --model_path "output/multipleview/bearRun2/"  --skip_train --configs arguments/multipleview/default.py
 
-python metrics.py --model_path "output/multipleview/bearRun/"
+python metrics.py --model_path "output/multipleview/bearRun2/"
