@@ -14,11 +14,13 @@ mkdir ./colmap_tmp/dense
 
 python scripts/downsample_point.py ./colmap_tmp/dense/fused.ply ./data/multipleview/$workdir/points3D_multipleview.ply
 
-git clone https://github.com/Fyusion/LLFF.git
-pip install scikit-image
-python LLFF/imgs2poses.py ./colmap_tmp/
+python colmap2poses_bounds.py ./data/multipleview/$workdir/sparse_ ./data/multipleview/$workdir/poses_bounds_multipleview.npy
 
-cp ./colmap_tmp/poses_bounds.npy ./data/multipleview/$workdir/poses_bounds_multipleview.npy
+#git clone https://github.com/Fyusion/LLFF.git
+#pip install scikit-image
+#python LLFF/imgs2poses.py ./colmap_tmp/
+
+#cp ./colmap_tmp/poses_bounds.npy ./data/multipleview/$workdir/poses_bounds_multipleview.npy
 
 rm -rf ./colmap_tmp
-rm -rf ./LLFF
+#rm -rf ./LLFF
