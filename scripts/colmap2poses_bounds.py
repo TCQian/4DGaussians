@@ -2,13 +2,15 @@ import os
 import sys
 import numpy as np
 import pycolmap
+from pycolmap import qvec_to_rotmat
 
 def load_sparse_model(sparse_dir):
     return pycolmap.Reconstruction(sparse_dir)
 
 def pose_from_colmap(image):
     # COLMAP uses world-to-camera; invert to get camera-to-world
-    Rwc = image.rotmat().T
+    R = qvec_to_rotmat(image.qvec)
+    Rwc = R.T
     twc = -Rwc @ image.tvec
     return Rwc, twc
 
