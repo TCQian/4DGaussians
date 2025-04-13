@@ -6,7 +6,10 @@ mkdir ./colmap_tmp/sparse
 /home/e/e0407638/github/colmap/build/src/colmap/exe/colmap mapper --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images --output_path ./colmap_tmp/sparse
 mkdir ./data/multipleview/$workdir/sparse_
 cp -r ./colmap_tmp/sparse/0/* ./data/multipleview/$workdir/sparse_
+
+# Qian changes: to run the colmap datatype
 cp -r ./colmap_tmp/sparse ./data/multipleview/$workdir/sparse
+cp -r ./colmap_tmp/images ./data/multipleview/$workdir/images
 
 mkdir ./colmap_tmp/dense
 /home/e/e0407638/github/colmap/build/src/colmap/exe/colmap image_undistorter --image_path ./colmap_tmp/images --input_path ./colmap_tmp/sparse/0 --output_path ./colmap_tmp/dense --output_type COLMAP
