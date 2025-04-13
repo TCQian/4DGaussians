@@ -6,6 +6,7 @@ mkdir ./colmap_tmp/sparse
 /home/e/e0407638/github/colmap/build/src/colmap/exe/colmap mapper --database_path ./colmap_tmp/database.db --image_path ./colmap_tmp/images --output_path ./colmap_tmp/sparse
 mkdir ./data/multipleview/$workdir/sparse_
 cp -r ./colmap_tmp/sparse/0/* ./data/multipleview/$workdir/sparse_
+cp -r ./colmap_tmp/sparse ./data/multipleview/$workdir/sparse
 
 mkdir ./colmap_tmp/dense
 /home/e/e0407638/github/colmap/build/src/colmap/exe/colmap image_undistorter --image_path ./colmap_tmp/images --input_path ./colmap_tmp/sparse/0 --output_path ./colmap_tmp/dense --output_type COLMAP
@@ -13,8 +14,6 @@ mkdir ./colmap_tmp/dense
 /home/e/e0407638/github/colmap/build/src/colmap/exe/colmap stereo_fusion --workspace_path ./colmap_tmp/dense --workspace_format COLMAP --input_type geometric --output_path ./colmap_tmp/dense/fused.ply
 
 python scripts/downsample_point.py ./colmap_tmp/dense/fused.ply ./data/multipleview/$workdir/points3D_multipleview.ply
-
-python scripts/colmap2poses_bounds.py ./data/multipleview/$workdir/sparse_ ./data/multipleview/$workdir/poses_bounds_multipleview.npy
 
 #git clone https://github.com/Fyusion/LLFF.git
 #pip install scikit-image
