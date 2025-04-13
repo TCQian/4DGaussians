@@ -24,5 +24,5 @@ python scripts/downsample_point.py ./colmap_tmp/dense/fused.ply ./data/multiplev
 
 #cp ./colmap_tmp/poses_bounds.npy ./data/multipleview/$workdir/poses_bounds_multipleview.npy
 
-rm -rf ./colmap_tmp
+# rm -rf ./colmap_tmp
 #rm -rf ./LLFF

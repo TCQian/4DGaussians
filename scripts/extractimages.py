@@ -13,10 +13,11 @@ dir1=os.path.join("data",folder_path)
 for folder_name in sorted(os.listdir(dir1)):
     dir2=os.path.join(dir1,folder_name)
     for file_name in os.listdir(dir2):
-        if file_name.startswith("frame_00001"):
-            i=i+1
+        if file_name.endswith(".jpg") or file_name.endswith(".png"):
             src_path = os.path.join(dir2, file_name)
-            dst_path = os.path.join(images_path, f"image{i}.jpg")
-            shutil.copyfile(src_path, dst_path) 
+            dst_name = f"{folder_name}_{file_name}"
+            dst_path = os.path.join(images_path, dst_name)
+            shutil.copyfile(src_path, dst_path)
+            i=i+1
 
 print("End！")

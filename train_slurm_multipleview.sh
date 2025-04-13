@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=MultipleView_BearRun2          # Job name
+#SBATCH --job-name=MultipleView_BearRun          # Job name
 #SBATCH --time=24:00:00                  # Time limit hrs:min:sec
 #SBATCH --gres=gpu:a100-40:1
 #SBATCH --mail-type=ALL                  # Get email for all status updates
