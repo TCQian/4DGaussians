@@ -1,4 +1,5 @@
 import json
+import math
 import os
 
 import numpy as np
@@ -11,14 +12,10 @@ from utils.graphics_utils import focal2fov
 
 
 class PanopticDataset(Dataset):
-    def __init__(self, datadir: str, json_path: str, split: str = "train"):
-        """
-        datadir: root folder containing 'ims/' and the JSON
-        json_path: e.g. 'train_meta.json' or 'test_meta.json'
-        split: just for API symmetry; you can ignore or extend it
-        """
-        full_json = os.path.join(datadir, json_path)
-        with open(full_json, "r") as f:
+    def __init__(self, datadir: str, json_path: str):
+        # --- load metadata once ---
+        meta_file = os.path.join(datadir, json_path)
+        with open(meta_file, "r") as f:
             meta = json.load(f)
 
         self.datadir = datadir
@@ -27,28 +24,38 @@ class PanopticDataset(Dataset):
         self.max_time = len(meta["fn"])
         self.entries = []
 
-        # each frame index has lists of focals, w2c, filenames, cam_ids
-        for frame_idx in range(self.max_time):
-            time = frame_idx / self.max_time
-            focals = meta["k"][frame_idx]
-            w2cs = meta["w2c"][frame_idx]
-            fns = meta["fn"][frame_idx]
-            cam_ids = meta["cam_id"][frame_idx]
+        # flatten (time × camera) into a single list
+        for t_idx in range(self.max_time):
+            time = t_idx / self.max_time
+            Ks = meta["k"][t_idx]  # list of 3×3 intrinsics
+            W2Cs = meta["w2c"][t_idx]
+            FNs = meta["fn"][t_idx]
+            CIDs = meta["cam_id"][t_idx]
 
-            for focal, w2c, fn, cid in zip(focals, w2cs, fns, cam_ids):
+            for K_list, w2c_list, fn, cid in zip(Ks, W2Cs, FNs, CIDs):
+                # turn that nested list into a real 3×3 array
+                K = np.array(K_list, dtype=np.float32).reshape(3, 3)
+                fx = float(K[0, 0])
+                fy = float(K[1, 1])
+
                 self.entries.append(
                     {
                         "time": time,
-                        "focal": focal,
-                        "w2c": np.array(w2c, dtype=np.float32),
-                        "filename": fn,
+                        "K": K,
+                        "fx": fx,
+                        "fy": fy,
+                        "w2c": np.array(w2c_list, dtype=np.float32),
+                        "fn": fn,
                         "cam_id": cid,
                     }
                 )
 
-        # precompute FOVs once
-        self.FovY = focal2fov(self.entries[0]["focal"], self.h)
-        self.FovX = focal2fov(self.entries[0]["focal"], self.w)
+        # compute FOVs from fx, fy
+        # note: focal2fov(pixels, focal) -> radians
+        self.FovX = focal2fov(self.w, np.mean([e["fx"] for e in self.entries]))
+        self.FovY = focal2fov(self.h, np.mean([e["fy"] for e in self.entries]))
+
+        # simple PIL→Tensor loader
         self.transform = T.ToTensor()
 
     def __len__(self):
@@ -57,17 +64,23 @@ class PanopticDataset(Dataset):
     def __getitem__(self, idx):
         e = self.entries[idx]
 
-        # 1) load image
-        img_path = os.path.join(self.datadir, "ims", e["filename"])
+        # load image on‐the‐fly
+        img_path = os.path.join(self.datadir, "ims", e["fn"])
         img = Image.open(img_path).convert("RGB")
-        img = self.transform(img)  # [3, H, W], float in [0,1]
+        img = self.transform(img)  # → [3,H,W], float in [0,1]
 
-        # 2) build camera
+        # build camera; here we feed it K and w2c
         cam = setup_camera(
-            w=self.w, h=self.h, k=e["focal"], w2c=e["w2c"], near=0.01, far=100
+            w=self.w,
+            h=self.h,
+            K=e["K"],  # assumes your setup_camera can take a full K
+            w2c=e["w2c"],
+            near=0.01,
+            far=100.0,
         )
-        # you may want to overwrite cam.tanfovx/y if setup_camera doesn't use our FOVs:
-        cam.tanfovx = np.tan(self.FovX * 0.5)
-        cam.tanfovy = np.tan(self.FovY * 0.5)
+
+        # override tan‐FOV if needed
+        cam.tanfovx = math.tan(self.FovX * 0.5)
+        cam.tanfovy = math.tan(self.FovY * 0.5)
 
         return {"camera": cam, "image": img, "time": e["time"], "cam_id": e["cam_id"]}
