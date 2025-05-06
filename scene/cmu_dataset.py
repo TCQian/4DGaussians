@@ -67,14 +67,14 @@ class PanopticDataset(Dataset):
         # load image on‐the‐fly
         img_path = os.path.join(self.datadir, "ims", e["fn"])
         img = Image.open(img_path).convert("RGB")
-        img = self.transform(img)  # → [3,H,W], float in [0,1]
+        img = self.transform(img)
 
-        # build camera; here we feed it K and w2c
+        # build camera; pass K and w2c positionally, not as 'K='
         cam = setup_camera(
-            w=self.w,
-            h=self.h,
-            K=e["K"],  # assumes your setup_camera can take a full K
-            w2c=e["w2c"],
+            self.w,  # image width
+            self.h,  # image height
+            e["K"],  # your 3×3 intrinsics matrix
+            e["w2c"],  # world-to-camera 4×4
             near=0.01,
             far=100.0,
         )
