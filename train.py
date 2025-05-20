@@ -30,6 +30,7 @@ import lpips
 from utils.scene_utils import render_training_image
 from time import time
 import copy
+import torch.multiprocessing as mp
 
 to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 
@@ -426,6 +427,7 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
+    mp.set_start_method('spawn', force=True) # allow GPU to be used in subprocesses
     training(lp.extract(args), hp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.expname)
 
     # All done
