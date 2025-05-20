@@ -79,8 +79,4 @@ class PanopticDataset(Dataset):
             far=100.0,
         )
 
-        # override tan‐FOV if needed
-        cam.tanfovx = math.tan(self.FovX * 0.5)
-        cam.tanfovy = math.tan(self.FovY * 0.5)
-
         return {"camera": cam, "image": img, "time": e["time"], "cam_id": e["cam_id"]}
