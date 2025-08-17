@@ -46,6 +46,7 @@ to8b = lambda x : (255*np.clip(x.cpu().numpy(),0,1)).astype(np.uint8)
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background, cam_type):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
+    fps_file = os.path.join(model_path, name, "ours_{}".format(iteration), "fps.txt")
 
     makedirs(render_path, exist_ok=True)
     makedirs(gts_path, exist_ok=True)
@@ -68,6 +69,8 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
 
     time2=time()
     print("FPS:",(len(views)-1)/(time2-time1))
+    with open(fps_file, "w") as f:
+        f.write(str((len(views)-1)/(time2-time1)))
 
     multithread_write(gt_list, gts_path)
 

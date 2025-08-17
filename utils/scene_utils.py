@@ -32,7 +32,11 @@ def render_training_image(scene, gaussians, viewpoints, render_func, pipe, backg
         image_np = np.concatenate((gt_np, image_np, depth_np), axis=1)
         image_with_labels = Image.fromarray((np.clip(image_np,0,1) * 255).astype('uint8'))  
         draw1 = ImageDraw.Draw(image_with_labels)
-        font = ImageFont.truetype('./utils/TIMES.TTF', size=40) 
+        try:
+            font = ImageFont.truetype('./utils/TIMES.TTF', size=40)
+        except OSError:
+            print("[WARNING] TIMES.TTF not found. Using default font.")
+            font = ImageFont.load_default()
         text_color = (255, 0, 0)  
         label1_position = (10, 10)
         label2_position = (image_with_labels.width - 100 - len(label2) * 10, 10) 

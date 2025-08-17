@@ -533,35 +533,26 @@ def plot_camera_orientations(cam_list, xyz):
     ax.set_zlabel('Z Axis')
     plt.savefig("output.png")
     # breakpoint()
-def readPanopticmeta(datadir, json_path):
-    with open(os.path.join(datadir,json_path)) as f:
-        test_meta = json.load(f)
-    w = test_meta['w']
-    h = test_meta['h']
-    max_time = len(test_meta['fn'])
-    cam_infos = []
-    for index in range(len(test_meta['fn'])):
-        focals = test_meta['k'][index]
-        w2cs = test_meta['w2c'][index]
-        fns = test_meta['fn'][index]
-        cam_ids = test_meta['cam_id'][index]
 
-        time = index / len(test_meta['fn'])
-        for focal, w2c, fn, cam in zip(focals, w2cs, fns, cam_ids):
-            image_path = os.path.join(datadir,"ims")
-            image_name=fn
-            image = Image.open(os.path.join(datadir,"ims",fn))
-            im_data = np.array(image.convert("RGBA"))
-            im_data = PILtoTorch(im_data,None)[:3,:,:]
-            camera = setup_camera(w, h, focal, w2c)
-            cam_infos.append({
-                "camera":camera,
-                "time":time,
-                "image":im_data})
-            
-    cam_centers = np.linalg.inv(test_meta['w2c'][0])[:, :3, 3]  # Get scene radius
-    scene_radius = 1.1 * np.max(np.linalg.norm(cam_centers - np.mean(cam_centers, 0)[None], axis=-1))
-    return cam_infos, max_time, scene_radius 
+def readPanopticmeta(datadir: str, json_path: str):
+    # --- 1) load just the JSON to compute scene radius ---
+    meta_file = os.path.join(datadir, json_path)
+    with open(meta_file, "r") as f:
+        meta = json.load(f)
+
+    # meta['w2c'][0] is a list of world-to-camera 4×4 matrices for t=0
+    w2c0 = np.array(meta["w2c"][0], dtype=np.float32)       # (N_cams, 4, 4)
+    inv_w2c0 = np.linalg.inv(w2c0)                          # (N_cams, 4, 4)
+    centers = inv_w2c0[:, :3, 3]                            # (N_cams, 3)
+    mean_center = centers.mean(axis=0, keepdims=True)       # (1, 3)
+    scene_radius = 1.1 * np.max(np.linalg.norm(centers - mean_center, axis=-1))
+
+    # --- 2) build on-the-fly dataset ---
+    from scene.cmu_dataset import PanopticDataset
+    dataset = PanopticDataset(datadir, json_path)
+
+    # --- 3) return dataset instead of full cam_infos list ---
+    return dataset, dataset.max_time, scene_radius
 
 def readPanopticSportsinfos(datadir):
     train_cam_infos, max_time, scene_radius = readPanopticmeta(datadir, "train_meta.json")
