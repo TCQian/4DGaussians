@@ -8,6 +8,13 @@
 #
 # For inquiries contact  george.drettakis@inria.fr
 #
+import os
+import sys
+
+script_dir = os.path.dirname(os.path.abspath(__file__))      
+fourdgs_dir = os.path.dirname(script_dir)                         
+if fourdgs_dir not in sys.path:
+    sys.path.insert(0, fourdgs_dir)
 
 import torch
 import math
