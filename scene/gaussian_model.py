@@ -46,7 +46,7 @@ class GaussianModel:
 
     def __init__(self, sh_degree : int, args):
         self.active_sh_degree = 0
-        self.max_sh_degree = sh_degree  
+        self.max_sh_degree = sh_degree
         self._xyz = torch.empty(0)
         self._deformation = deform_network(args)
         self._features_dc = torch.empty(0)
@@ -61,6 +61,7 @@ class GaussianModel:
         self.percent_dense = 0
         self.spatial_lr_scale = 0
         self._deformation_table = torch.empty(0)
+        self._cuda_generator = None
         self.setup_functions()
 
     def capture(self):
@@ -167,6 +168,7 @@ class GaussianModel:
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self._deformation_accum = torch.zeros((self.get_xyz.shape[0],3),device="cuda")
+        self._cuda_generator = getattr(training_args, "_torch_cuda_generator", None)
         
 
         l = [
@@ -426,7 +428,10 @@ class GaussianModel:
             return
         stds = self.get_scaling[selected_pts_mask].repeat(N,1)
         means =torch.zeros((stds.size(0), 3),device="cuda")
-        samples = torch.normal(mean=means, std=stds)
+        if self._cuda_generator is not None:
+            samples = torch.normal(mean=means, std=stds, generator=self._cuda_generator)
+        else:
+            samples = torch.normal(mean=means, std=stds)
         rots = build_rotation(self._rotation[selected_pts_mask]).repeat(N,1,1)
         new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.get_xyz[selected_pts_mask].repeat(N, 1)
         new_scaling = self.scaling_inverse_activation(self.get_scaling[selected_pts_mask].repeat(N,1) / (0.8*N))
@@ -460,7 +465,10 @@ class GaussianModel:
         return self._deformation.get_aabb
     def get_displayment(self,selected_point, point, perturb):
         xyz_max, xyz_min = self.get_aabb
-        displacements = torch.randn(selected_point.shape[0], 3).to(selected_point) * perturb
+        if self._cuda_generator is not None:
+            displacements = torch.randn(selected_point.shape[0], 3, device=selected_point.device, generator=self._cuda_generator) * perturb
+        else:
+            displacements = torch.randn(selected_point.shape[0], 3).to(selected_point) * perturb
         final_point = selected_point + displacements
 
         mask_a = final_point<xyz_max 
