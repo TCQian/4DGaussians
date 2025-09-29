@@ -97,7 +97,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     if opt.dataloader:
         viewpoint_stack = scene.getTrainCameras()
         if opt.custom_sampler is not None:
-            sampler = FineSampler(viewpoint_stack, generator=data_generator, python_random=python_rng)
+            sampler = FineSampler(viewpoint_stack)
             viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,sampler=sampler,num_workers=0,collate_fn=list)
             random_loader = False
         else:
