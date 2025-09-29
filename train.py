@@ -12,7 +12,6 @@ import numpy as np
 import random
 import os, sys
 import torch
-from random import randint
 from utils.loss_utils import l1_loss, ssim, l2_loss, lpips_loss
 from gaussian_renderer import render, network_gui
 import sys
@@ -39,7 +38,7 @@ try:
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
-def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations, 
+def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations,
                          checkpoint_iterations, checkpoint, debug_from,
                          gaussians, scene, stage, tb_writer, train_iter,timer):
     first_iter = 0
@@ -76,6 +75,11 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     train_cams = scene.getTrainCameras()
 
 
+    if not hasattr(opt, "_torch_generator"):
+        opt._torch_generator = torch.Generator(device='cpu')
+        opt._torch_generator.manual_seed(opt.seed)
+    data_generator = opt._torch_generator
+
     if not viewpoint_stack and not opt.dataloader:
         # dnerf's branch
         viewpoint_stack = [i for i in train_cams]
@@ -87,10 +91,10 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         viewpoint_stack = scene.getTrainCameras()
         if opt.custom_sampler is not None:
             sampler = FineSampler(viewpoint_stack)
-            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,sampler=sampler,num_workers=16,collate_fn=list)
+            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,sampler=sampler,num_workers=0,collate_fn=list)
             random_loader = False
         else:
-            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,shuffle=True,num_workers=16,collate_fn=list)
+            viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=batch_size,shuffle=True,num_workers=0,collate_fn=list,generator=data_generator)
             random_loader = True
         loader = iter(viewpoint_stack_loader)
     
@@ -151,7 +155,7 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             except StopIteration:
                 print("reset dataloader into random dataloader.")
                 if not random_loader:
-                    viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=opt.batch_size,shuffle=True,num_workers=32,collate_fn=list)
+                    viewpoint_stack_loader = DataLoader(viewpoint_stack, batch_size=opt.batch_size,shuffle=True,num_workers=0,collate_fn=list,generator=data_generator)
                     random_loader = True
                 loader = iter(viewpoint_stack_loader)
 
@@ -159,9 +163,9 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             idx = 0
             viewpoint_cams = []
 
-            while idx < batch_size :    
-                    
-                viewpoint_cam = viewpoint_stack.pop(randint(0,len(viewpoint_stack)-1))
+            while idx < batch_size :
+
+                viewpoint_cam = viewpoint_stack.pop(random.randint(0,len(viewpoint_stack)-1))
                 if not viewpoint_stack :
                     viewpoint_stack =  temp_list.copy()
                 viewpoint_cams.append(viewpoint_cam)
@@ -385,17 +389,17 @@ def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_i
         
         torch.cuda.empty_cache()
 def setup_seed(seed):
-     torch.manual_seed(seed)
-     torch.cuda.manual_seed_all(seed)
-     np.random.seed(seed)
-     random.seed(seed)
-     torch.backends.cudnn.deterministic = True
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 if __name__ == "__main__":
     # Set up command line argument parser
     # torch.set_default_tensor_type('torch.FloatTensor')
     torch.cuda.empty_cache()
     parser = ArgumentParser(description="Training script parameters")
-    setup_seed(6666)
     lp = ModelParams(parser)
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
@@ -411,7 +415,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = None)
     parser.add_argument("--expname", type=str, default = "")
     parser.add_argument("--configs", type=str, default = "")
-    
+
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     if args.configs:
@@ -422,7 +426,8 @@ if __name__ == "__main__":
     print("Optimizing " + args.model_path)
 
     # Initialize system state (RNG)
-    safe_state(args.quiet)
+    setup_seed(args.seed)
+    safe_state(args.quiet, args.seed)
 
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
