@@ -43,6 +43,15 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
                          gaussians, scene, stage, tb_writer, train_iter,timer):
     first_iter = 0
 
+    if not hasattr(opt, "_torch_generator"):
+        opt._torch_generator = torch.Generator(device='cpu')
+        opt._torch_generator.manual_seed(opt.seed)
+    if not hasattr(opt, "_torch_cuda_generator"):
+        opt._torch_cuda_generator = torch.Generator(device='cuda')
+        opt._torch_cuda_generator.manual_seed(opt.seed)
+    if not hasattr(opt, "_python_random"):
+        opt._python_random = random.Random(opt.seed)
+
     gaussians.training_setup(opt)
     if checkpoint:
         # breakpoint()
@@ -75,10 +84,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
     train_cams = scene.getTrainCameras()
 
 
-    if not hasattr(opt, "_torch_generator"):
-        opt._torch_generator = torch.Generator(device='cpu')
-        opt._torch_generator.manual_seed(opt.seed)
     data_generator = opt._torch_generator
+    python_rng = opt._python_random
 
     if not viewpoint_stack and not opt.dataloader:
         # dnerf's branch
@@ -165,7 +172,8 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
 
             while idx < batch_size :
 
-                viewpoint_cam = viewpoint_stack.pop(random.randint(0,len(viewpoint_stack)-1))
+                rand_index = python_rng.randrange(len(viewpoint_stack))
+                viewpoint_cam = viewpoint_stack.pop(rand_index)
                 if not viewpoint_stack :
                     viewpoint_stack =  temp_list.copy()
                 viewpoint_cams.append(viewpoint_cam)
