@@ -18,17 +18,15 @@ def get_stamp_list(dataset, timestamp):
     print("select index:",[i*frame_length+timestamp for i in range(len(dataset.dataset.poses))])
     return [dataset[i*frame_length+timestamp] for i in range(len(dataset.dataset.poses))]
 class FineSampler(Sampler):
-    def __init__(self, dataset, generator=None, python_random=None):
-        self.len_dataset = len(dataset)
+    def __init__(self, dataset):
+        self.len_dataset = len(dataset) 
         self.len_pose = len(dataset.dataset.poses)
         self.frame_length = int(self.len_dataset/ self.len_pose)
-        self._generator = generator
-        self._python_random = python_random if python_random is not None else random
 
         sample_list = []
         for i in range(self.frame_length):
             for j in range(4):
-                idx = torch.randperm(self.len_pose, generator=self._generator) * self.frame_length + i
+                idx = torch.randperm(self.len_pose) *self.frame_length + i
                 # print(idx)
                 # breakpoint()
                 now_list = []
@@ -36,12 +34,12 @@ class FineSampler(Sampler):
                 for item in idx.tolist():
                     now_list.append(item)
                     cnt+=1
-                    if cnt % 2 == 0 and len(sample_list)>2:
-                        select_element = [x for x in self._python_random.sample(sample_list,2)]
+                    if cnt % 2 == 0 and len(sample_list)>2:    
+                        select_element = [x for x in random.sample(sample_list,2)]
                         now_list += select_element
-
+            
             sample_list += now_list
-
+            
         self.sample_list = sample_list
         # print(self.sample_list)
         # breakpoint()
