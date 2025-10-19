@@ -117,6 +117,10 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
         load_in_memory = False 
                             # 
     count = 0
+    
+    # Record training start time for this stage
+    stage_start_time = time()
+    
     for iteration in range(first_iter, final_iter+1):        
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -307,6 +311,15 @@ def scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_i
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" +f"_{stage}_" + str(iteration) + ".pth")
+    
+    # Calculate and print stage training time
+    stage_end_time = time()
+    stage_training_time = stage_end_time - stage_start_time
+    hours = int(stage_training_time // 3600)
+    minutes = int((stage_training_time % 3600) // 60)
+    seconds = int(stage_training_time % 60)
+    
+    print(f"\n{stage.upper()} STAGE COMPLETED: {hours:02d}:{minutes:02d}:{seconds:02d} ({stage_training_time:.2f}s)")
 def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, expname):
     # first_iter = 0
     tb_writer = prepare_output_and_logger(expname)
@@ -315,12 +328,55 @@ def training(dataset, hyper, opt, pipe, testing_iterations, saving_iterations, c
     timer = Timer()
     scene = Scene(dataset, gaussians, load_coarse=None)
     timer.start()
+    
+    # Record training start times for each stage
+    coarse_start_time = time()
+    
     scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations,
                              checkpoint_iterations, checkpoint, debug_from,
                              gaussians, scene, "coarse", tb_writer, opt.coarse_iterations,timer)
+    
+    coarse_end_time = time()
+    coarse_training_time = coarse_end_time - coarse_start_time
+    
+    fine_start_time = time()
+    
     scene_reconstruction(dataset, opt, hyper, pipe, testing_iterations, saving_iterations,
                          checkpoint_iterations, checkpoint, debug_from,
                          gaussians, scene, "fine", tb_writer, opt.iterations,timer)
+    
+    fine_end_time = time()
+    fine_training_time = fine_end_time - fine_start_time
+    
+    # Calculate total training time
+    total_training_time = coarse_training_time + fine_training_time
+    
+    # Format times
+    def format_time(seconds):
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    
+    # Print separate timing for each stage
+    print(f"\n{'='*60}")
+    print(f"TRAINING TIME SUMMARY")
+    print(f"{'='*60}")
+    print(f"COARSE STAGE:")
+    print(f"  Time: {format_time(coarse_training_time)} ({coarse_training_time:.2f} seconds)")
+    print(f"  Iterations: {opt.coarse_iterations}")
+    print(f"  Avg time/iteration: {coarse_training_time/opt.coarse_iterations:.4f} seconds")
+    print(f"")
+    print(f"FINE STAGE:")
+    print(f"  Time: {format_time(fine_training_time)} ({fine_training_time:.2f} seconds)")
+    print(f"  Iterations: {opt.iterations}")
+    print(f"  Avg time/iteration: {fine_training_time/opt.iterations:.4f} seconds")
+    print(f"")
+    print(f"TOTAL TRAINING:")
+    print(f"  Time: {format_time(total_training_time)} ({total_training_time:.2f} seconds)")
+    print(f"  Total iterations: {opt.coarse_iterations + opt.iterations}")
+    print(f"  Avg time/iteration: {total_training_time/(opt.coarse_iterations + opt.iterations):.4f} seconds")
+    print(f"{'='*60}")
 
 def prepare_output_and_logger(expname):    
     if not args.model_path:
